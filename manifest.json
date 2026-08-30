@@ -1,0 +1,9 @@
+{
+  "id": "aetherlog",
+  "name": "AetherLog",
+  "version": "1.0.0",
+  "minAppVersion": "1.4.0",
+  "author": "FancyLin+AI",
+  "description": "全局剪贴板追踪+速记面板+语音捕获的自动化日志插件",
+  "isDesktopOnly": true
+}

@@ -1,0 +1,97 @@
+# AetherLog Release：打 tag（v*）时自动构建、打包、发布到 GitHub Releases
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run check
+
+      - name: Build
+        run: node esbuild.config.mjs
+
+      - name: Verify version consistency
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          MANIFEST_VERSION=$(node -e "console.log(require('./manifest.json').version)")
+          PACKAGE_VERSION=$(node -e "console.log(require('./package.json').version)")
+          echo "Tag: $TAG_VERSION | manifest.json: $MANIFEST_VERSION | package.json: $PACKAGE_VERSION"
+          if [ "$TAG_VERSION" != "$MANIFEST_VERSION" ]; then
+            echo "❌ Tag version ($TAG_VERSION) != manifest.json version ($MANIFEST_VERSION)"
+            exit 1
+          fi
+          if [ "$TAG_VERSION" != "$PACKAGE_VERSION" ]; then
+            echo "❌ Tag version ($TAG_VERSION) != package.json version ($PACKAGE_VERSION)"
+            exit 1
+          fi
+          echo "✅ Version consistency verified"
+
+      - name: Create release zip
+        run: |
+          mkdir -p release
+          cp dist/main.js release/main.js
+          cp dist/styles.css release/styles.css
+          cp manifest.json release/manifest.json
+          cd release
+          zip -r ../aetherlog-${GITHUB_REF_NAME}.zip .
+          cd ..
+          echo "📦 Created aetherlog-${GITHUB_REF_NAME}.zip"
+          ls -lh release/ aetherlog-${GITHUB_REF_NAME}.zip
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          # 从 CHANGELOG.md 提取当前版本的变更说明
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          CHANGELOG=$(awk "/^## \\[${TAG_VERSION}\\]/{flag=1; next} /^## \\[/{flag=0} flag" CHANGELOG.md 2>/dev/null || true)
+          # 如果提取为空，使用默认文案
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG="See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details."
+          fi
+          # 写入临时文件供后续步骤使用
+          {
+            echo "body<<CHANGELOG_EOF"
+            echo "$CHANGELOG"
+            echo "CHANGELOG_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "AetherLog ${{ github.ref_name }}"
+          body: |
+            ${{ steps.changelog.outputs.body }}
+
+            ---
+            **Full Changelog**: https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md
+          files: |
+            aetherlog-${{ github.ref_name }}.zip
+            dist/main.js
+            dist/styles.css
+            manifest.json
+          draft: false
+          prerelease: false
+          generate_release_notes: false

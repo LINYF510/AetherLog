@@ -1,0 +1,393 @@
+/* ============================================================
+   AetherLog 插件样式
+   窗口 B 负责：M5 速记面板 + M7 托盘
+   所有自定义类名带 aetherlog- 前缀；配色全部走 Obsidian 原生变量，
+   自动适配 Light/Dark Theme（不硬编码色值）
+   ============================================================ */
+
+/* == M5 Quick Note Modal == */
+
+/* 模态框尺寸 600×480（对齐 UI 规范 §1.1），内容 flex 列布局 */
+.modal.aetherlog-quicknote-modal {
+  --aetherlog-m5-bg: var(--background-primary);
+  --aetherlog-m5-chip-bg: var(--tag-background, var(--background-modifier-hover));
+  width: 600px;
+  height: 480px;
+  max-width: 90vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+
+.aetherlog-quicknote-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: var(--size-4-4);
+  background: var(--aetherlog-m5-bg);
+}
+
+/* 顶栏：标题 + 右对齐 ESC 快捷键提示小字 */
+.aetherlog-quicknote-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: var(--size-2-3);
+}
+
+.aetherlog-quicknote-title {
+  font-size: var(--font-ui-medium);
+  font-weight: var(--font-bold, 600);
+  color: var(--text-normal);
+}
+
+.aetherlog-quicknote-esc-hint {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-faint);
+}
+
+/* 中部输入区：多行 TextArea 撑满约 80% 高度 */
+.aetherlog-quicknote-input {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 120px;
+  resize: none;
+  padding: var(--size-2-3);
+  font-family: var(--font-text);
+  font-size: var(--font-ui-medium);
+  color: var(--text-normal);
+  background-color: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  outline: none;
+}
+
+/* 聚焦成功强视觉确认：2px 主题色边框高亮（对齐 UI 规范 §1.2） */
+.aetherlog-quicknote-input:focus {
+  border-color: var(--interactive-accent);
+  box-shadow: 0 0 0 1px var(--interactive-accent);
+}
+
+/* 工具栏行：左分类 / 中标签 / 右语音，flex 两端对齐 */
+.aetherlog-quicknote-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2-3);
+  flex-wrap: wrap;
+  margin: var(--size-2-3) 0;
+}
+
+.aetherlog-quicknote-category {
+  display: flex;
+  align-items: center;
+  gap: var(--size-1-2);
+}
+
+/* 分类下拉：沿用 Obsidian 原生 .dropdown 样式，保持原生感 */
+.aetherlog-quicknote-category-select {
+  width: 110px;
+}
+
+.aetherlog-quicknote-category-input {
+  width: 120px;
+  font-size: var(--font-ui-small);
+  color: var(--text-normal);
+  background-color: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  padding: var(--size-1-2) var(--size-2-2);
+}
+
+/* 标签区：chips + 输入框，联想框绝对定位于下方 */
+.aetherlog-quicknote-tags {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--size-1-2);
+  min-width: 120px;
+}
+
+.aetherlog-quicknote-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-1-2);
+}
+
+/* 标签 chip：对齐 Obsidian 原生 tag pill 样式 */
+.aetherlog-quicknote-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 8px;
+  font-size: var(--font-ui-smaller);
+  color: var(--tag-color, var(--text-normal));
+  background-color: var(--aetherlog-m5-chip-bg);
+  border-radius: var(--tag-radius, 1em);
+}
+
+.aetherlog-quicknote-chip-remove {
+  cursor: pointer;
+  opacity: 0.55;
+  padding-left: 2px;
+}
+
+.aetherlog-quicknote-chip-remove:hover {
+  opacity: 1;
+}
+
+.aetherlog-quicknote-tag-input {
+  flex: 1 1 80px;
+  min-width: 60px;
+  font-size: var(--font-ui-small);
+  color: var(--text-normal);
+  background-color: transparent;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  padding: var(--size-1-2) var(--size-2-2);
+}
+
+/* 标签联想下拉：最多 8 项 */
+.aetherlog-quicknote-suggest {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: var(--layer-modal, 10);
+  min-width: 180px;
+  max-height: 240px;
+  overflow-y: auto;
+  margin-top: var(--size-1-2);
+  padding: var(--size-1-2);
+  background-color: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  box-shadow: var(--shadow-s);
+}
+
+.aetherlog-quicknote-suggest-item {
+  padding: var(--size-1-2) var(--size-2-2);
+  font-size: var(--font-ui-small);
+  color: var(--text-normal);
+  border-radius: var(--radius-s);
+  cursor: pointer;
+}
+
+.aetherlog-quicknote-suggest-item.is-active,
+.aetherlog-quicknote-suggest-item:hover {
+  background-color: var(--background-modifier-hover);
+}
+
+/* 语音按钮：clickable-icon 原生观感 */
+.aetherlog-quicknote-voice {
+  flex: 0 0 auto;
+}
+
+/* 底栏：主提交按钮 + 清空按钮 */
+.aetherlog-quicknote-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2-2);
+  margin-top: var(--size-2-2);
+}
+
+.aetherlog-quicknote-submit {
+  flex: 0 0 auto;
+}
+
+.aetherlog-quicknote-clear {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+}
+
+/* == M7 Tray == */
+
+/*
+ * 未读红点闪烁动画（opacity 1 ↔ 0.3，每 1.5s 切换一次状态，周期 3s）。
+ * 原生托盘图标的闪烁由 TrayManager 以默认/红点双图标 setImage 切换实现
+ * （OS 原生菜单不经过 CSS）；本动画供 DOM 侧徽标指示复用（如状态栏红点）。
+ */
+@keyframes aetherlog-tray-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.aetherlog-tray-dot {
+  display: inline-block;
+  width: var(--font-ui-small);
+  height: var(--font-ui-small);
+  border-radius: 50%;
+  background-color: var(--text-error, #e93147);
+  animation: aetherlog-tray-blink 3s ease-in-out infinite;
+}
+
+/* == M6 Settings Tab == */
+
+/* Coming Soon 统一灰化（任务书强制约束 7 + UI 规范 §2.1）；
+   pointer-events 仅屏蔽控件区，保留整行可点击以弹 NotImplemented Notice */
+.aetherlog-coming-soon {
+  opacity: 0.6 !important;
+  filter: grayscale(1);
+  cursor: not-allowed !important;
+  position: relative;
+}
+
+.aetherlog-coming-soon .setting-item-control {
+  pointer-events: none;
+}
+
+.aetherlog-coming-soon:hover::after {
+  content: '🔜 Phase ' attr(data-phase) ' 推出';
+  position: absolute;
+  right: 12px;
+  top: 8px;
+  font-size: 12px;
+  color: var(--color-accent);
+}
+
+/* Tagify 风格黑名单 TextArea（任务书 M6.3） */
+.aetherlog-tag-patterns-input {
+  min-height: 120px;
+  font-family: var(--font-monospace);
+  font-size: 13px;
+}
+
+/* 状态指示条（UI 规范 §2.2 Section 0：sticky top 永不离开视口） */
+.aetherlog-status-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 5px;
+  padding: 8px 12px;
+  margin: 4px 0 12px;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.aetherlog-status-line {
+  cursor: pointer;
+}
+
+.aetherlog-status-line:hover {
+  color: var(--interactive-accent);
+}
+
+/* 数据管理危险区（UI 规范 §2.1：error 色边框 + 圆角） */
+.aetherlog-danger-section {
+  border: 1px solid var(--background-modifier-error);
+  border-radius: 5px;
+  padding: 4px 12px 12px;
+}
+
+.aetherlog-danger-hint,
+.aetherlog-red-hint {
+  color: var(--text-error);
+  font-size: 12px;
+  margin: 4px 0 8px;
+}
+
+.aetherlog-paused-hint {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin: -6px 0 8px;
+}
+
+/* 快捷键录制控件（UI 规范 §2.2：录制中红底闪烁 + 成功反馈色） */
+.aetherlog-shortcut-recorder.recording button,
+button.aetherlog-shortcut-recorder.recording {
+  background: var(--background-modifier-error);
+  color: var(--text-on-accent);
+  animation: aetherlog-settings-blink 1s infinite;
+}
+
+@keyframes aetherlog-settings-blink {
+  50% {
+    opacity: 0.65;
+  }
+}
+
+.aetherlog-shortcut-value,
+.aetherlog-shortcut-value-ok,
+.aetherlog-shortcut-value-err {
+  font-family: var(--font-monospace);
+  margin-right: 8px;
+}
+
+.aetherlog-shortcut-value-ok {
+  color: var(--text-success);
+}
+
+.aetherlog-shortcut-value-err {
+  color: var(--text-error);
+}
+
+/* 分类预设行（UI 规范 §2.2 Section 2：输入 + 拖动手柄 + 保存/删除按钮） */
+.aetherlog-category-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.aetherlog-category-drag-handle {
+  cursor: grab;
+  color: var(--text-muted);
+}
+
+.aetherlog-category-input {
+  flex: 1;
+}
+
+.aetherlog-category-row.aetherlog-drag-over {
+  outline: 1px dashed var(--interactive-accent);
+}
+
+/* 内容类型 Checkbox 组 / 输入校验错误 / 其他辅助样式 */
+.aetherlog-checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 0 4px;
+}
+
+.aetherlog-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aetherlog-input-error {
+  border-color: var(--background-modifier-error) !important;
+}
+
+.aetherlog-info-text {
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 6px 0;
+}
+
+.aetherlog-about-links {
+  padding: 6px 0;
+}
+
+.aetherlog-about-links a {
+  margin-right: 14px;
+}
+
+.aetherlog-known-issue {
+  border-left: 3px solid var(--text-warning, #e0ac00);
+  background: var(--background-secondary);
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 8px 0;
+}
