@@ -1,6 +1,6 @@
 {
   "name": "aetherlog",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "全局剪贴板追踪+速记面板+语音捕获的自动化日志 Obsidian 插件",
   "scripts": {

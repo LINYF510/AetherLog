@@ -16,7 +16,7 @@ import type { App, EventRef } from 'obsidian'
 import type { CaptureRecord } from '../types/capture.types'
 import type { ClipboardListenerConfig, IClipboardListener } from '../types/clipboard.types'
 import { classifyContent } from '../utils/content-classifier'
-import { resolveAppName } from '../utils/app-name-resolver'
+import { resolveAppNameAsync } from '../utils/app-name-resolver'
 import { nowIso } from '../utils/date-utils'
 import { computeHash, generateRecordId } from '../utils/hash-utils'
 
@@ -276,7 +276,9 @@ export class ClipboardListener extends EventEmitter implements IClipboardListene
       source: 'clipboard',
       content: text,
       timestamp: nowIso(),
-      appName: resolveAppName(),
+      // 异步解析：主力走 PowerShell 剪贴板所有者查询（外部应用复制时 Obsidian 不聚焦，
+      // 焦点方案拿不到来源），失败降级到同步链（@electron/remote / document 标题 / Unknown）
+      appName: await resolveAppNameAsync(),
       wordCount: analysis.wordCount,
       contentType: analysis.contentType,
       language: analysis.language,

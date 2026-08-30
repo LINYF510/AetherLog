@@ -38,6 +38,10 @@ interface TrayLike {
   setToolTip(tip: string): void
   setContextMenu(menu: MenuLike): void
   setImage(image: NativeImageLike): void
+  on(event: 'click', handler: () => void): void
+  on(event: 'double-click', handler: () => void): void
+  removeListener(event: 'click', handler: () => void): void
+  removeListener(event: 'double-click', handler: () => void): void
   destroy(): void
 }
 
@@ -54,8 +58,8 @@ interface ElectronRemoteLike {
   nativeImage: { createFromDataURL(url: string): NativeImageLike }
 }
 
-/** 托盘动作：tray.types.ts 契约动作之外追加 G3「退出」项（契约文件不在本轮白名单，局部扩展） */
-type TrayAction = TrayMenuAction | 'quit'
+/** 托盘动作：tray.types.ts 契约动作之外追加 G3「退出」与「单击恢复窗口」项（契约文件局部扩展） */
+type TrayAction = TrayMenuAction | 'quit' | 'show-window'
 
 // ============================================================
 // 托盘图标（16×16 RGBA PNG，base64 内嵌，对齐 UI 规范 §4.1 资源方案）
@@ -138,6 +142,8 @@ export class TrayManager implements ITrayManager {
   private badgeIcon: NativeImageLike | null = null
   private blinkTimer: ReturnType<typeof setInterval> | null = null
   private blinkVisible = false
+  /** 左键单击 / 双击托盘图标的恢复窗口处理器（destroy 时精确移除） */
+  private trayClickHandler: (() => void) | null = null
   /** 菜单动作 → 业务回调（托盘菜单与插件逻辑的桥梁） */
   private readonly handlers = new Map<TrayAction, () => void>()
 
@@ -160,6 +166,11 @@ export class TrayManager implements ITrayManager {
       const tray = new remote.Tray(this.defaultIcon)
       tray.setToolTip('AetherLog · 剪贴板日志')
       tray.setContextMenu(remote.Menu.buildFromTemplate(this.buildMenuTemplate()))
+      // G3 修复：Electron 在 Windows 上不会因左键点击托盘图标自动恢复窗口，
+      // 必须显式监听 click / double-click 并调用恢复逻辑，否则窗口隐藏后无法经单击找回
+      this.trayClickHandler = (): void => this.dispatch('show-window')
+      tray.on('click', this.trayClickHandler)
+      tray.on('double-click', this.trayClickHandler)
       this.tray = tray
       return true
     } catch (err) {
@@ -174,6 +185,14 @@ export class TrayManager implements ITrayManager {
     this.clearUnreadBadge()
     this.handlers.clear()
     if (this.tray !== null) {
+      if (this.trayClickHandler !== null) {
+        try {
+          this.tray.removeListener('click', this.trayClickHandler)
+          this.tray.removeListener('double-click', this.trayClickHandler)
+        } catch {
+          // 托盘已销毁：幂等要求下忽略
+        }
+      }
       try {
         this.tray.destroy()
       } catch {
@@ -181,6 +200,7 @@ export class TrayManager implements ITrayManager {
       }
       this.tray = null
     }
+    this.trayClickHandler = null
   }
 
   /** 显示未读徽标：默认图标 ↔ 红点图标每 1.5s 切换一次（等效 CSS opacity 0.3↔1 闪烁） */
@@ -271,6 +291,11 @@ export function mountTrayManager(plugin: AetherLogPlugin): TrayManager {
     const file = app.vault.getAbstractFileByPath(dayFilePath())
     return file instanceof TFile ? file.stat.mtime : null
   }
+
+  // G3 修复：左键单击 / 双击托盘图标 → 恢复主窗口（窗口最小化到托盘后找回入口）
+  manager.registerMenuAction('show-window', (): void => {
+    showMainWindow()
+  })
 
   manager.registerMenuAction('open-quick-note', (): void => {
     // G3：窗口可能已最小化到托盘，先恢复主窗口再打开 Modal，否则速记面板不可见

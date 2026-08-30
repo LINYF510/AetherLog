@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.1] - 2026-08-31
+
+### Fixed
+- 🐛 **托盘单击无响应（G3·修复）**：修复最小化到托盘后左键单击托盘图标无法恢复 Obsidian 主窗口的问题（原实现只注册了右键菜单，Electron 在 Windows 上不会因左键点击自动恢复窗口；现显式监听托盘 `click` / `double-click` 事件调用 `showMainWindow()`，destroy 时精确移除监听保持幂等）
+- 🐛 **来源应用始终 Unknown（M2·修复）**：修复剪贴板捕获记录的来源应用字段恒为 `Unknown` 的问题。两层根因：① 原实现经 `requireFn('electron').remote` 获取聚焦窗口，`electron.remote` 在 Electron 14+ 已移除（Obsidian 现为 Electron 39），该解析链从未生效；② 即使修好，`BrowserWindow.getFocusedWindow()` 只能看到 Obsidian 自身窗口——外部应用复制时 Obsidian 不聚焦，必然返回 `Unknown`。现剪贴板捕获改用异步主力解析链：Windows 下经 PowerShell 查询 Win32 剪贴板所有者进程（`GetClipboardOwner` → `GetWindowThreadProcessId` → `Get-Process`），所有者为最后一次写入剪贴板的窗口、与当前焦点无关，可可靠识别真实来源应用（纯子进程方案，无 native addon 依赖）；失败降级到原同步链（已同步修复为 `@electron/remote` 优先）
+
+### Changed
+- 来源应用显示为进程名（如 `chrome` / `WeChat` / `Obsidian`），不做友好名映射；每次捕获新内容会启动一次 PowerShell 子进程（约 0.3~1s，异步不阻塞 UI）
+
+---
+
 ## [1.0.0] - 2026-08-29
 
 ### Added（MVP · Phase 1 完整交付）
